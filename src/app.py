@@ -19,63 +19,69 @@ current_dir = Path(__file__).parent
 app.mount("/static", StaticFiles(directory=os.path.join(Path(__file__).parent,
           "static")), name="static")
 
-# In-memory activity database
-activities = {
-    "Chess Club": {
-        "description": "Learn strategies and compete in chess tournaments",
-        "schedule": "Fridays, 3:30 PM - 5:00 PM",
-        "max_participants": 12,
-        "participants": ["michael@mergington.edu", "daniel@mergington.edu"]
-    },
-    "Programming Class": {
-        "description": "Learn programming fundamentals and build software projects",
-        "schedule": "Tuesdays and Thursdays, 3:30 PM - 4:30 PM",
-        "max_participants": 20,
-        "participants": ["emma@mergington.edu", "sophia@mergington.edu"]
-    },
-    "Gym Class": {
-        "description": "Physical education and sports activities",
-        "schedule": "Mondays, Wednesdays, Fridays, 2:00 PM - 3:00 PM",
-        "max_participants": 30,
-        "participants": ["john@mergington.edu", "olivia@mergington.edu"]
-    },
-    "Soccer Team": {
-        "description": "Team-based soccer training and matches",
-        "schedule": "Mondays and Thursdays, 4:00 PM - 5:30 PM",
-        "max_participants": 22,
-        "participants": ["nina@mergington.edu", "aaron@mergington.edu"]
-    },
-    "Basketball Club": {
-        "description": "Practice drills and friendly basketball games",
-        "schedule": "Tuesdays and Fridays, 4:00 PM - 5:30 PM",
-        "max_participants": 18,
-        "participants": ["jasmine@mergington.edu", "liam@mergington.edu"]
-    },
-    "Art Workshop": {
-        "description": "Explore painting, sketching, and mixed media art",
-        "schedule": "Wednesdays, 3:30 PM - 5:00 PM",
-        "max_participants": 15,
-        "participants": ["luna@mergington.edu", "noah@mergington.edu"]
-    },
-    "Drama Club": {
-        "description": "Acting exercises, play rehearsals, and stagecraft",
-        "schedule": "Thursdays, 3:30 PM - 5:30 PM",
-        "max_participants": 20,
-        "participants": ["zoe@mergington.edu", "ethan@mergington.edu"]
-    },
-    "Debate Team": {
-        "description": "Practice debate topics and compete in tournaments",
-        "schedule": "Mondays and Wednesdays, 3:30 PM - 5:00 PM",
-        "max_participants": 16,
-        "participants": ["maria@mergington.edu", "alex@mergington.edu"]
-    },
-    "Science Club": {
-        "description": "Hands-on experiments and science fair preparation",
-        "schedule": "Tuesdays, 3:30 PM - 5:00 PM",
-        "max_participants": 18,
-        "participants": ["kevin@mergington.edu", "maya@mergington.edu"]
+
+def get_default_activities():
+    """Returns the default activities database."""
+    return {
+        "Chess Club": {
+            "description": "Learn strategies and compete in chess tournaments",
+            "schedule": "Fridays, 3:30 PM - 5:00 PM",
+            "max_participants": 12,
+            "participants": ["michael@mergington.edu", "daniel@mergington.edu"]
+        },
+        "Programming Class": {
+            "description": "Learn programming fundamentals and build software projects",
+            "schedule": "Tuesdays and Thursdays, 3:30 PM - 4:30 PM",
+            "max_participants": 20,
+            "participants": ["emma@mergington.edu", "sophia@mergington.edu"]
+        },
+        "Gym Class": {
+            "description": "Physical education and sports activities",
+            "schedule": "Mondays, Wednesdays, Fridays, 2:00 PM - 3:00 PM",
+            "max_participants": 30,
+            "participants": ["john@mergington.edu", "olivia@mergington.edu"]
+        },
+        "Soccer Team": {
+            "description": "Team-based soccer training and matches",
+            "schedule": "Mondays and Thursdays, 4:00 PM - 5:30 PM",
+            "max_participants": 22,
+            "participants": ["nina@mergington.edu", "aaron@mergington.edu"]
+        },
+        "Basketball Club": {
+            "description": "Practice drills and friendly basketball games",
+            "schedule": "Tuesdays and Fridays, 4:00 PM - 5:30 PM",
+            "max_participants": 18,
+            "participants": ["jasmine@mergington.edu", "liam@mergington.edu"]
+        },
+        "Art Workshop": {
+            "description": "Explore painting, sketching, and mixed media art",
+            "schedule": "Wednesdays, 3:30 PM - 5:00 PM",
+            "max_participants": 15,
+            "participants": ["luna@mergington.edu", "noah@mergington.edu"]
+        },
+        "Drama Club": {
+            "description": "Acting exercises, play rehearsals, and stagecraft",
+            "schedule": "Thursdays, 3:30 PM - 5:30 PM",
+            "max_participants": 20,
+            "participants": ["zoe@mergington.edu", "ethan@mergington.edu"]
+        },
+        "Debate Team": {
+            "description": "Practice debate topics and compete in tournaments",
+            "schedule": "Mondays and Wednesdays, 3:30 PM - 5:00 PM",
+            "max_participants": 16,
+            "participants": ["maria@mergington.edu", "alex@mergington.edu"]
+        },
+        "Science Club": {
+            "description": "Hands-on experiments and science fair preparation",
+            "schedule": "Tuesdays, 3:30 PM - 5:00 PM",
+            "max_participants": 18,
+            "participants": ["kevin@mergington.edu", "maya@mergington.edu"]
+        }
     }
-}
+
+
+# Initialize activities on startup
+app.state.activities = get_default_activities()
 
 
 @app.get("/")
@@ -85,18 +91,18 @@ def root():
 
 @app.get("/activities")
 def get_activities():
-    return activities
+    return app.state.activities
 
 
 @app.post("/activities/{activity_name}/signup")
 def signup_for_activity(activity_name: str, email: str):
     """Sign up a student for an activity"""
     # Validate activity exists
-    if activity_name not in activities:
+    if activity_name not in app.state.activities:
         raise HTTPException(status_code=404, detail="Activity not found")
 
     # Get the specific activity
-    activity = activities[activity_name]
+    activity = app.state.activities[activity_name]
 
     # Validate student is not already signed up
     if email in activity["participants"]:
@@ -110,10 +116,10 @@ def signup_for_activity(activity_name: str, email: str):
 @app.delete("/activities/{activity_name}/participants/{email}")
 def unregister_participant(activity_name: str, email: str):
     """Remove a student from an activity"""
-    if activity_name not in activities:
+    if activity_name not in app.state.activities:
         raise HTTPException(status_code=404, detail="Activity not found")
 
-    activity = activities[activity_name]
+    activity = app.state.activities[activity_name]
     if email not in activity["participants"]:
         raise HTTPException(status_code=404, detail="Participant not found")
 
